@@ -17,3 +17,11 @@ class User(db.Model):
             "email": self.email,
             # do not serialize the password, its a security breach
         }
+    
+    def serialize_is_active(self):
+        return {
+            "id": self.id,
+            "email": self.email,
+            "is_active": self.is_active
+            # do not serialize the password, its a security breach
+        }

@@ -36,14 +36,68 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
-@app.route('/user', methods=['GET'])
-def handle_hello():
+# Obtener todos los usuarios:
+@app.route('/users', methods=['GET'])
+def get_all_users():
 
-    response_body = {
-        "msg": "Hello, this is your GET /user response "
-    }
+    users = User.query.all()
+    users_serialized = [user.serialize() for user in users]
 
-    return jsonify(response_body), 200
+    return jsonify({
+        "msg": "Users retrieved succesfully",
+        "users": users_serialized
+    }), 200
+
+# Obtener un usuario:
+@app.route('/user/<int:user_id>', methods=['GET'])
+def get_user(user_id):
+
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
+    
+    return jsonify({
+        "msg": "User found succesfully",
+        "user" : user.serialize_is_active()
+    }), 200
+
+# Crear un nuevo usuario
+@app.route('/user', methods=['POST'])
+def create_user():
+
+    # Guarda en request_data lo que viene del frontend
+    request_data = request.get_json()
+
+    # Comprobamos que los campos no estén vacíos
+    if not request_data.get('email') or not request_data.get('password'):
+        return jsonify({"msg": "Email and password are required"}), 400
+    
+    # Comprobamos que el email de este usuario no existe ya:
+    existing_user = User.query.filter_by(email = request_data.get('email')).first()
+    if existing_user:
+        return jsonify({"msg": "User already exists"}), 403
+    
+    # Creamos ese nuevo usuario
+    new_user = User(
+        email = request_data["email"],
+        password = request_data["password"],
+        is_active = True
+    )
+
+    # Guardamos el nuevo usuario en la base datos
+    db.session.add(new_user)
+    db.session.commit()
+
+    # Devolvemos mensaje de éxito
+    return jsonify({
+        "msg" : "User created succesfully",
+        "user" : new_user.serialize()
+    }), 201
+
+
+
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
